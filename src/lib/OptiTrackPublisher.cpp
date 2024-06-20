@@ -53,12 +53,12 @@ void OptiTrackPublisher::PublishData(rigidbody_state& StateInput)
     switch (messagetype_) {
         case 0: {
                 for ( int i = 0; i < 3; i++) {
-                    MessageMocap_.position[i] = StateInput.Position(i);
-                    MessageMocap_.velocity[i] = StateInput.V_I(i);
-                    MessageMocap_.angular_velocity[i] = StateInput.Omega_BI(i);
+                    MessageMocap_.pose.position[i] = StateInput.Position(i);
+                    MessageMocap_.twist.linear[i] = StateInput.V_I(i);
+                    MessageMocap_.twist.angular[i] = StateInput.Omega_BI(i);
                 }
                 for( int i = 0; i < 4; i++) {
-                    MessageMocap_.quaternion[i] = StateInput.quaternion(i);
+                    MessageMocap_.pose.orientation[i] = StateInput.quaternion(i);
                 }
             MessageMocap_.header.stamp = ros::Time::now();// use time now as time stamp
             publisher_.publish(MessageMocap_);
@@ -84,12 +84,12 @@ void OptiTrackPublisher::PublishData(rigidbody_state& StateInput)
         }
         default: {
                 for ( int i = 0; i < 3; i++) {
-                    MessageMocap_.position[i] = StateInput.Position(i);
-                    MessageMocap_.velocity[i] = StateInput.V_I(i);
-                    MessageMocap_.angular_velocity[i] = StateInput.Omega_BI(i);
+                    MessageMocap_.pose.position[i] = StateInput.Position(i);
+                    MessageMocap_.twist.linear[i] = StateInput.V_I(i);
+                    MessageMocap_.twist.angular[i] = StateInput.Omega_BI(i);
                 }
                 for( int i = 0; i < 4; i++) {
-                    MessageMocap_.quaternion[i] = StateInput.quaternion(i);
+                    MessageMocap_.pose.orientation[i] = StateInput.quaternion(i);
                 }
             MessageMocap_.header.stamp = ros::Time::now();
             publisher_.publish(MessageMocap_);
