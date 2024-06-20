@@ -39,10 +39,10 @@ OptiTrackFeedBackRigidBody::OptiTrackFeedBackRigidBody(const char* name,ros::Nod
     //Initialize all pose
     for(int i = 0;i<2;i++)
     {
-        pose[i].q0 = 1;
-        pose[i].q1 = 0;
-        pose[i].q2 = 0;
-        pose[i].q3 = 0;
+        pose[i].orientation.w() = 1;
+        pose[i].orientation.x() = 0;
+        pose[i].orientation.y() = 0;
+        pose[i].orientation.z() = 0;
         pose[i].t = 0;
         pose[i].Position(0) = 0;
         pose[i].Position(1) = 0;
@@ -113,10 +113,10 @@ void OptiTrackFeedBackRigidBody::PushPose()
     double t_current = (double)OptiTrackdata.header.stamp.sec + (double)OptiTrackdata.header.stamp.nsec*0.000000001;
     pose[1].t = t_current;
     // take a special note at the order of the quaterion
-    pose[1].q0 = OptiTrackdata.pose.orientation.w;
-    pose[1].q1 = OptiTrackdata.pose.orientation.x;
-    pose[1].q2 = OptiTrackdata.pose.orientation.y;
-    pose[1].q3 = OptiTrackdata.pose.orientation.z;
+    pose[1].orientation.w() = OptiTrackdata.pose.orientation.w;
+    pose[1].orientation.x() = OptiTrackdata.pose.orientation.x;
+    pose[1].orientation.y() = OptiTrackdata.pose.orientation.y;
+    pose[1].orientation.z() = OptiTrackdata.pose.orientation.z;
     // update the auxiliary matrix
     /*
     L = [-q1 q0 q3 -q2;
@@ -127,35 +127,35 @@ void OptiTrackFeedBackRigidBody::PushPose()
          -q3 -q2 q1 q0]
     R_IB = RL^T
     */
-    pose[1].L(0,0) = - pose[1].q1;
-    pose[1].L(1,0) = - pose[1].q2;
-    pose[1].L(2,0) = - pose[1].q3;
+    pose[1].L(0,0) = - pose[1].orientation.x();
+    pose[1].L(1,0) = - pose[1].orientation.y();
+    pose[1].L(2,0) = - pose[1].orientation.z();
 
-    pose[1].L(0,1) = pose[1].q0;
-    pose[1].L(1,2) = pose[1].q0;
-    pose[1].L(2,3) = pose[1].q0;
+    pose[1].L(0,1) = pose[1].orientation.w();
+    pose[1].L(1,2) = pose[1].orientation.w();
+    pose[1].L(2,3) = pose[1].orientation.w();
 
-    pose[1].L(0,2) = pose[1].q3;
-    pose[1].L(0,3) = - pose[1].q2;
-    pose[1].L(1,1) = - pose[1].q3;
-    pose[1].L(1,3) = pose[1].q1;
-    pose[1].L(2,1) = pose[1].q2;
-    pose[1].L(2,2) = - pose[1].q1;
+    pose[1].L(0,2) = pose[1].orientation.z();
+    pose[1].L(0,3) = - pose[1].orientation.y();
+    pose[1].L(1,1) = - pose[1].orientation.z();
+    pose[1].L(1,3) = pose[1].orientation.x();
+    pose[1].L(2,1) = pose[1].orientation.y();
+    pose[1].L(2,2) = - pose[1].orientation.x();
 
-    pose[1].R(0,0) = - pose[1].q1;
-    pose[1].R(1,0) = - pose[1].q2;
-    pose[1].R(2,0) = - pose[1].q3;
+    pose[1].R(0,0) = - pose[1].orientation.x();
+    pose[1].R(1,0) = - pose[1].orientation.y();
+    pose[1].R(2,0) = - pose[1].orientation.z();
 
-    pose[1].R(0,1) = pose[1].q0;
-    pose[1].R(1,2) = pose[1].q0;
-    pose[1].R(2,3) = pose[1].q0;
+    pose[1].R(0,1) = pose[1].orientation.w();
+    pose[1].R(1,2) = pose[1].orientation.w();
+    pose[1].R(2,3) = pose[1].orientation.w();
 
-    pose[1].R(0,2) = -pose[1].q3;
-    pose[1].R(0,3) =  pose[1].q2;
-    pose[1].R(1,1) =  pose[1].q3;
-    pose[1].R(1,3) = -pose[1].q1;
-    pose[1].R(2,1) = -pose[1].q2;
-    pose[1].R(2,2) =  pose[1].q1; 
+    pose[1].R(0,2) = -pose[1].orientation.z();
+    pose[1].R(0,3) =  pose[1].orientation.y();
+    pose[1].R(1,1) =  pose[1].orientation.z();
+    pose[1].R(1,3) = -pose[1].orientation.x();
+    pose[1].R(2,1) = -pose[1].orientation.y();
+    pose[1].R(2,2) =  pose[1].orientation.x(); 
 
     pose[1].R_IB = pose[1].R * pose[1].L.transpose();
     pose[1].R_BI = pose[1].R_IB.transpose();
@@ -226,10 +226,8 @@ void OptiTrackFeedBackRigidBody::GetState(rigidbody_state& state)
     state.Euler(0) = euler_temp[0];// euler angle
     state.Euler(1) = euler_temp[1];// euler angle
     state.Euler(2) = euler_temp[2];// euler angle
-    state.quaternion(0) = pose[1].q0;
-    state.quaternion(1) = pose[1].q1;
-    state.quaternion(2) = pose[1].q2;
-    state.quaternion(3) = pose[1].q3;
+    state.quaternion = pose[1].orientation;
+
     state.isFeedbackNomral = FeedbackState;
 }
 void OptiTrackFeedBackRigidBody::GetRaWVelocity(Vector3d& linear_velocity,Vector3d& angular_velocity)
@@ -286,12 +284,12 @@ void OptiTrackFeedBackRigidBody::GetEulerAngleFromQuaterion_NormalConvention(dou
 
 
     // roll (x-axis rotation)
-    double sinr_cosp = +2.0 * (pose[1].q0 * pose[1].q1 + pose[1].q2 * pose[1].q3);
-    double cosr_cosp = +1.0 - 2.0 * (pose[1].q1 * pose[1].q1 +pose[1].q2 * pose[1].q2);
+    double sinr_cosp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.x() + pose[1].orientation.y() * pose[1].orientation.z());
+    double cosr_cosp = +1.0 - 2.0 * (pose[1].orientation.x() * pose[1].orientation.x() +pose[1].orientation.y() * pose[1].orientation.y());
     double roll = atan2(sinr_cosp, cosr_cosp);
 
     // pitch (y-axis rotation)
-    double sinp = +2.0 * (pose[1].q0 * pose[1].q2 - pose[1].q3 * pose[1].q1);
+    double sinp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.y() - pose[1].orientation.z() * pose[1].orientation.x());
     double pitch;
     if (fabs(sinp) >= 1)
            pitch = copysign(M_PI / 2, sinp); // use 90 degrees if out of range
@@ -299,8 +297,8 @@ void OptiTrackFeedBackRigidBody::GetEulerAngleFromQuaterion_NormalConvention(dou
            pitch = asin(sinp);
 
     // yaw (z-axis rotation)
-    double siny_cosp = +2.0 * (pose[1].q0 * pose[1].q3 + pose[1].q1 * pose[1].q2);
-    double cosy_cosp = +1.0 - 2.0 * (pose[1].q2 * pose[1].q2 + pose[1].q3 * pose[1].q3);
+    double siny_cosp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.z() + pose[1].orientation.x() * pose[1].orientation.y());
+    double cosy_cosp = +1.0 - 2.0 * (pose[1].orientation.y() * pose[1].orientation.y() + pose[1].orientation.z() * pose[1].orientation.z());
     double yaw = atan2(siny_cosp, cosy_cosp);
     //double yaw  = atan2(2.0 * (dronepose[1].q3 * dronepose[1].q0 + dronepose[1].q1 * dronepose[1].q2), -1.0 + 2.0 * (dronepose[1].q0 * dronepose[1].q0 + dronepose[1].q1 * dronepose[1].q1));
     eulerangle[0] = roll;
@@ -314,12 +312,12 @@ void OptiTrackFeedBackRigidBody::GetEulerAngleFromQuaterion_OptiTrackYUpConventi
 
     // OptiTrack gives a quaternion with q2 and q3 flipped. (and sign flipped for q3)
     // roll (x-axis rotation)
-    double sinr_cosp = +2.0 * (pose[1].q0 * pose[1].q1 + pose[1].q3 * pose[1].q2);
-    double cosr_cosp = +1.0 - 2.0 * (pose[1].q1 * pose[1].q1 +pose[1].q3 * pose[1].q3);
+    double sinr_cosp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.x() + pose[1].orientation.z() * pose[1].orientation.y());
+    double cosr_cosp = +1.0 - 2.0 * (pose[1].orientation.x() * pose[1].orientation.x() +pose[1].orientation.z() * pose[1].orientation.z());
     double roll = atan2(sinr_cosp, cosr_cosp);
 
     // pitch (y-axis rotation)
-    double sinp = +2.0 * (pose[1].q0 * pose[1].q3 - pose[1].q2 * pose[1].q1);
+    double sinp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.z() - pose[1].orientation.y() * pose[1].orientation.x());
     double pitch;
     if (fabs(sinp) >= 1)
            pitch = copysign(M_PI / 2, sinp); // use 90 degrees if out of range
@@ -327,8 +325,8 @@ void OptiTrackFeedBackRigidBody::GetEulerAngleFromQuaterion_OptiTrackYUpConventi
            pitch = asin(sinp);
 
     // yaw (z-axis rotation)
-    double siny_cosp = +2.0 * (pose[1].q0 * pose[1].q2 + pose[1].q1 * pose[1].q3);
-    double cosy_cosp = +1.0 - 2.0 * (pose[1].q2 * pose[1].q2 + pose[1].q3 * pose[1].q3);
+    double siny_cosp = +2.0 * (pose[1].orientation.w() * pose[1].orientation.y() + pose[1].orientation.x() * pose[1].orientation.z());
+    double cosy_cosp = +1.0 - 2.0 * (pose[1].orientation.y() * pose[1].orientation.y() + pose[1].orientation.z() * pose[1].orientation.z());
     double yaw = atan2(siny_cosp, cosy_cosp);
     eulerangle[0] = roll;
     eulerangle[1] = pitch;

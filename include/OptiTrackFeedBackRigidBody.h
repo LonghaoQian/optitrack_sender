@@ -13,10 +13,8 @@ using namespace Eigen;
 
 struct optitrack_pose{
     Vector3d Position;
-    double q0;
-    double q1;
-    double q2;
-    double q3;
+    Eigen::Quaterniond orientation;
+
     double t;
     Matrix<double, 3, 4> L;// Quaternion auxiliary matirx 
     Matrix<double, 3, 4> R;// Quaternion auxiliary matirx 
