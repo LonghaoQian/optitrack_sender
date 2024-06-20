@@ -4,6 +4,7 @@
 #include <OptiTrackFeedBackRigidBody.h>
 #include <OptiTrackPublisher.h>
 #include <vector>
+#include "tf2_eigen/tf2_eigen.h"
 
 struct SubTopic
 {
@@ -59,14 +60,10 @@ int main(int argc, char **argv)
             /* creat a list of mocap messages */
             optitrack_broadcast::Mocap init_mocap;
 
-            for ( int i = 0; i < 3; i++) {
-                init_mocap.position[i] = 0;
-                init_mocap.velocity[i] = 0;
-                init_mocap.angular_velocity[i] = 0;
-            }
-            for ( int i = 0; i < 4; i++) {
-                init_mocap.quaternion[i] = init_state.quaternion(i);
-            }
+            init_mocap.pose.position = tf2::toMsg(Eigen::Vector3d::Zero().eval());
+            tf2::toMsg(Eigen::Vector3d::Zero().eval(), init_mocap.twist.linear); 
+            tf2::toMsg(Eigen::Vector3d::Zero().eval(), init_mocap.twist.angular); 
+            init_mocap.pose.orientation = tf2::toMsg(init_state.quaternion);
             MocapMessageList.push_back(init_mocap);
 
             /* parse and advertise the publisher */
