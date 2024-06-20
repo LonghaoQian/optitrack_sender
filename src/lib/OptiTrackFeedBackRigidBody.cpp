@@ -1,4 +1,5 @@
 #include "OptiTrackFeedBackRigidBody.h"
+#include "tf2_eigen/tf2_eigen.h"
 
 OptiTrackFeedBackRigidBody::OptiTrackFeedBackRigidBody(const char* name,ros::NodeHandle& n,unsigned int linear_window, unsigned int angular_window)
 {
@@ -47,12 +48,6 @@ OptiTrackFeedBackRigidBody::OptiTrackFeedBackRigidBody(const char* name,ros::Nod
         pose[i].Position(0) = 0;
         pose[i].Position(1) = 0;
         pose[i].Position(2) = 0;
-        pose[i].L<< 0,1,0,0,
-                    0,0,1,0,
-                    0,0,0,1;
-        pose[i].R<< 0,1,0,0,
-                    0,0,1,0,
-                    0,0,0,1;   
         pose[1].R_IB<< 1,0,0,
                     0,1,0,
                     0,0,1;
@@ -113,10 +108,8 @@ void OptiTrackFeedBackRigidBody::PushPose()
     double t_current = (double)OptiTrackdata.header.stamp.sec + (double)OptiTrackdata.header.stamp.nsec*0.000000001;
     pose[1].t = t_current;
     // take a special note at the order of the quaterion
-    pose[1].orientation.w() = OptiTrackdata.pose.orientation.w;
-    pose[1].orientation.x() = OptiTrackdata.pose.orientation.x;
-    pose[1].orientation.y() = OptiTrackdata.pose.orientation.y;
-    pose[1].orientation.z() = OptiTrackdata.pose.orientation.z;
+    tf2::fromMsg(OptiTrackdata.pose.orientation, pose[1].orientation);
+
     // update the auxiliary matrix
     /*
     L = [-q1 q0 q3 -q2;
@@ -127,37 +120,37 @@ void OptiTrackFeedBackRigidBody::PushPose()
          -q3 -q2 q1 q0]
     R_IB = RL^T
     */
-    pose[1].L(0,0) = - pose[1].orientation.x();
-    pose[1].L(1,0) = - pose[1].orientation.y();
-    pose[1].L(2,0) = - pose[1].orientation.z();
+    // pose[1].L(0,0) = - pose[1].orientation.x();
+    // pose[1].L(1,0) = - pose[1].orientation.y();
+    // pose[1].L(2,0) = - pose[1].orientation.z();
 
-    pose[1].L(0,1) = pose[1].orientation.w();
-    pose[1].L(1,2) = pose[1].orientation.w();
-    pose[1].L(2,3) = pose[1].orientation.w();
+    // pose[1].L(0,1) = pose[1].orientation.w();
+    // pose[1].L(1,2) = pose[1].orientation.w();
+    // pose[1].L(2,3) = pose[1].orientation.w();
 
-    pose[1].L(0,2) = pose[1].orientation.z();
-    pose[1].L(0,3) = - pose[1].orientation.y();
-    pose[1].L(1,1) = - pose[1].orientation.z();
-    pose[1].L(1,3) = pose[1].orientation.x();
-    pose[1].L(2,1) = pose[1].orientation.y();
-    pose[1].L(2,2) = - pose[1].orientation.x();
+    // pose[1].L(0,2) = pose[1].orientation.z();
+    // pose[1].L(0,3) = - pose[1].orientation.y();
+    // pose[1].L(1,1) = - pose[1].orientation.z();
+    // pose[1].L(1,3) = pose[1].orientation.x();
+    // pose[1].L(2,1) = pose[1].orientation.y();
+    // pose[1].L(2,2) = - pose[1].orientation.x();
 
-    pose[1].R(0,0) = - pose[1].orientation.x();
-    pose[1].R(1,0) = - pose[1].orientation.y();
-    pose[1].R(2,0) = - pose[1].orientation.z();
+    // pose[1].R(0,0) = - pose[1].orientation.x();
+    // pose[1].R(1,0) = - pose[1].orientation.y();
+    // pose[1].R(2,0) = - pose[1].orientation.z();
 
-    pose[1].R(0,1) = pose[1].orientation.w();
-    pose[1].R(1,2) = pose[1].orientation.w();
-    pose[1].R(2,3) = pose[1].orientation.w();
+    // pose[1].R(0,1) = pose[1].orientation.w();
+    // pose[1].R(1,2) = pose[1].orientation.w();
+    // pose[1].R(2,3) = pose[1].orientation.w();
 
-    pose[1].R(0,2) = -pose[1].orientation.z();
-    pose[1].R(0,3) =  pose[1].orientation.y();
-    pose[1].R(1,1) =  pose[1].orientation.z();
-    pose[1].R(1,3) = -pose[1].orientation.x();
-    pose[1].R(2,1) = -pose[1].orientation.y();
-    pose[1].R(2,2) =  pose[1].orientation.x(); 
+    // pose[1].R(0,2) = -pose[1].orientation.z();
+    // pose[1].R(0,3) =  pose[1].orientation.y();
+    // pose[1].R(1,1) =  pose[1].orientation.z();
+    // pose[1].R(1,3) = -pose[1].orientation.x();
+    // pose[1].R(2,1) = -pose[1].orientation.y();
+    // pose[1].R(2,2) =  pose[1].orientation.x(); 
 
-    pose[1].R_IB = pose[1].R * pose[1].L.transpose();
+    pose[1].R_IB = pose[1].orientation.toRotationMatrix();
     pose[1].R_BI = pose[1].R_IB.transpose();
     // position is straight forward
     pose[1].Position(0) =  OptiTrackdata.pose.position.x;

@@ -16,8 +16,6 @@ struct optitrack_pose{
     Eigen::Quaterniond orientation;
 
     double t;
-    Matrix<double, 3, 4> L;// Quaternion auxiliary matirx 
-    Matrix<double, 3, 4> R;// Quaternion auxiliary matirx 
     Matrix3d R_IB; //
     Matrix3d R_BI; //
 };
