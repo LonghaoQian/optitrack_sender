@@ -59,7 +59,7 @@ class OptiTrackFeedBackRigidBody{
     void CalculateVelocityFromPose();// calculate velocity info from pose update measurements
     void MovingWindowAveraging();// a filter using moving window
     void PushRawVelocity(Vector3d& new_linear_velocity, Vector3d& new_angular_velocity);// push newly measured velocity into raw velocity buffer
-    void PushPose();//push newly measured pose into dronepose buffer
+    void PushPose();  //push newly measured pose into dronepose buffer
     void SetZeroVelocity();
     //--------Update Rigid-body State ------//
     rigidbody_state state;

@@ -1,6 +1,44 @@
 #include "OptiTrackFeedBackRigidBody.h"
 #include "tf2_eigen/tf2_eigen.h"
 
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar, 3, 1> QuaternionToAngleAxis(
+    const Eigen::QuaternionBase<Derived>& quaternion) {
+  using Scalar = typename Derived::Scalar;
+
+  using std::atan2;
+  using std::sqrt;
+  const Scalar squared_n = quaternion.vec().squaredNorm();
+  const Scalar& w = quaternion.w();
+
+  Scalar two_atan_nbyw_by_n;
+
+  if (abs(squared_n) < Scalar(1e-8)) {
+    // If quaternion is normalized and n=0, then w should be 1;
+    // w=0 should never happen here!
+    const Scalar squared_w = w * w;
+    two_atan_nbyw_by_n =
+        Scalar(2.0) / w - Scalar(2.0 / 3.0) * (squared_n) / (w * squared_w);
+  } else {
+    const Scalar n = sqrt(squared_n);
+
+    // w < 0 ==> cos(theta/2) < 0 ==> theta > pi
+    //
+    // By convention, the condition |theta| < pi is imposed by wrapping theta
+    // to pi; The wrap operation can be folded inside evaluation of atan2
+    //
+    // theta - pi = atan(sin(theta - pi), cos(theta - pi))
+    //            = atan(-sin(theta), -cos(theta))
+    //
+    const Scalar atan_nbyw = (w < Scalar(0)) ? atan2(-n, -w) : atan2(n, w);
+    two_atan_nbyw_by_n = Scalar(2) * atan_nbyw / n;
+  }
+
+  return two_atan_nbyw_by_n * quaternion.vec();
+}
+
+
+
 OptiTrackFeedBackRigidBody::OptiTrackFeedBackRigidBody(const char* name,ros::NodeHandle& n,unsigned int linear_window, unsigned int angular_window)
 {
     // load filter window size
@@ -85,8 +123,8 @@ void OptiTrackFeedBackRigidBody::CalculateVelocityFromPose()
       // calculate linear velocity
       velocity_onestep = (pose[1].Position- pose[0].Position)/dt;
       // calculate angular velocity
-      Matrix3d RotationDifference = - pose[1].R_BI*pose[0].R_IB/dt;
-      Veemap(RotationDifference,angular_velocity_onestep);
+      const Eigen::Quaterniond rotation_diff = pose[1].orientation.inverse() * pose[0].orientation;
+      angular_velocity_onestep = -QuaternionToAngleAxis(rotation_diff) / dt;
   }else// step (3): if not set velocity to zero
   {
       velocity_onestep(0) = 0.0;
@@ -110,46 +148,14 @@ void OptiTrackFeedBackRigidBody::PushPose()
     // take a special note at the order of the quaterion
     tf2::fromMsg(OptiTrackdata.pose.orientation, pose[1].orientation);
 
-    // update the auxiliary matrix
-    /*
-    L = [-q1 q0 q3 -q2;
-         -q2 -q3 q0 q1;
-         -q3 q2 -q1 q0]
-    R = [-q1 q0 -q3 q2;
-         -q2 q3 q0 -q1;
-         -q3 -q2 q1 q0]
-    R_IB = RL^T
-    */
-    // pose[1].L(0,0) = - pose[1].orientation.x();
-    // pose[1].L(1,0) = - pose[1].orientation.y();
-    // pose[1].L(2,0) = - pose[1].orientation.z();
 
-    // pose[1].L(0,1) = pose[1].orientation.w();
-    // pose[1].L(1,2) = pose[1].orientation.w();
-    // pose[1].L(2,3) = pose[1].orientation.w();
-
-    // pose[1].L(0,2) = pose[1].orientation.z();
-    // pose[1].L(0,3) = - pose[1].orientation.y();
-    // pose[1].L(1,1) = - pose[1].orientation.z();
-    // pose[1].L(1,3) = pose[1].orientation.x();
-    // pose[1].L(2,1) = pose[1].orientation.y();
-    // pose[1].L(2,2) = - pose[1].orientation.x();
-
-    // pose[1].R(0,0) = - pose[1].orientation.x();
-    // pose[1].R(1,0) = - pose[1].orientation.y();
-    // pose[1].R(2,0) = - pose[1].orientation.z();
-
-    // pose[1].R(0,1) = pose[1].orientation.w();
-    // pose[1].R(1,2) = pose[1].orientation.w();
-    // pose[1].R(2,3) = pose[1].orientation.w();
-
-    // pose[1].R(0,2) = -pose[1].orientation.z();
-    // pose[1].R(0,3) =  pose[1].orientation.y();
-    // pose[1].R(1,1) =  pose[1].orientation.z();
-    // pose[1].R(1,3) = -pose[1].orientation.x();
-    // pose[1].R(2,1) = -pose[1].orientation.y();
-    // pose[1].R(2,2) =  pose[1].orientation.x(); 
-
+    const double quaternion_coeff_diff_nrm =
+        (pose[1].orientation.coeffs() - pose[0].orientation.coeffs()).norm();
+    const double quaternion_coeff_sum_nrm =
+        (pose[1].orientation.coeffs() + pose[0].orientation.coeffs()).norm();
+    if (quaternion_coeff_diff_nrm > quaternion_coeff_sum_nrm) {
+      pose[1].orientation.coeffs() = -pose[1].orientation.coeffs();
+    }
     pose[1].R_IB = pose[1].orientation.toRotationMatrix();
     pose[1].R_BI = pose[1].R_IB.transpose();
     // position is straight forward
