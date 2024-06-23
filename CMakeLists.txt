@@ -133,6 +133,7 @@ include_directories(
 # )
 
 add_library(OptiTrackFeedbackRigidBody src/lib/OptiTrackFeedBackRigidBody.cpp)
+add_dependencies(OptiTrackFeedbackRigidBody optitrack_broadcast_generate_messages_cpp optitrack_broadcast_gencpp)
 add_library(OptiTrackPublisher src/lib/OptiTrackPublisher.cpp)
 add_library(Mocap_emulator src/lib/Mocap_emulator.cpp)
 
